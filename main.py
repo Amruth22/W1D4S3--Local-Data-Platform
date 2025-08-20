@@ -476,9 +476,9 @@ async def clear_all_data():
 # Simulate sensor data (for testing)
 @app.post("/simulate/sensor-data")
 async def simulate_sensor_data(
+    background_tasks: BackgroundTasks,
     sensor_count: int = 3,
-    readings_per_sensor: int = 60,
-    background_tasks: BackgroundTasks
+    readings_per_sensor: int = 60
 ):
     """Simulate sensor data for testing (creates readings for the last hour)"""
     
