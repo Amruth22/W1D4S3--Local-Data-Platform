@@ -449,7 +449,7 @@ class WeatherStationTestCase(unittest.TestCase):
 def run_tests_parallel():
     """Run unit tests in parallel for faster execution"""
     import concurrent.futures
-    import subprocess
+    import io
     import sys
     
     # Define individual test methods
@@ -469,8 +469,11 @@ def run_tests_parallel():
             test_case = WeatherStationTestCase(test_method)
             suite.addTest(test_case)
             
-            # Run the test
-            runner = unittest.TextTestRunner(verbosity=0, stream=open('/dev/null', 'w') if sys.platform != 'win32' else open('nul', 'w'))
+            # Capture output
+            output_buffer = io.StringIO()
+            
+            # Run the test with minimal output
+            runner = unittest.TextTestRunner(verbosity=1, stream=output_buffer)
             result = runner.run(suite)
             
             return {
@@ -478,7 +481,7 @@ def run_tests_parallel():
                 'success': result.wasSuccessful(),
                 'failures': len(result.failures),
                 'errors': len(result.errors),
-                'result': result
+                'output': output_buffer.getvalue()
             }
         except Exception as e:
             return {
@@ -489,11 +492,11 @@ def run_tests_parallel():
                 'error': str(e)
             }
     
-    print("🚀 Running tests in parallel...")
+    print("🚀 Running tests in parallel (max 2 concurrent)...")
     start_time = time.time()
     
-    # Run tests in parallel with ThreadPoolExecutor
-    with ThreadPoolExecutor(max_workers=3) as executor:
+    # Run tests in parallel with ThreadPoolExecutor (limited workers to avoid conflicts)
+    with ThreadPoolExecutor(max_workers=2) as executor:
         # Submit all tests
         future_to_test = {executor.submit(run_single_test, test): test for test in test_methods}
         
