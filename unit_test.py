@@ -36,8 +36,6 @@ class WeatherStationTestCase(unittest.TestCase):
         except:
             pass
         
-        # Cleanup completed
-        
     def tearDown(self):
         """Clean up after each test method"""
         pass
