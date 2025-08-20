@@ -11,6 +11,8 @@ import threading
 from datetime import datetime, timedelta
 from typing import List, Dict, Any
 import random
+from concurrent.futures import ThreadPoolExecutor
+import multiprocessing
 
 class WeatherStationTestCase(unittest.TestCase):
     """Unit tests for the Weather Station Data Logger"""
@@ -446,8 +448,96 @@ class WeatherStationTestCase(unittest.TestCase):
         print(f"   ✅ System status accessible and well-structured")
         print(f"   📊 Current status: {status_data['status']}")
 
-def run_tests():
-    """Run all unit tests"""
+def run_tests_parallel():
+    """Run unit tests in parallel for faster execution"""
+    import concurrent.futures
+    import subprocess
+    import sys
+    
+    # Define individual test methods
+    test_methods = [
+        'test_01_data_storage_and_retrieval',
+        'test_02_lru_cache_functionality', 
+        'test_03_cache_first_analytics',
+        'test_04_connection_pool_management',
+        'test_05_input_validation_and_error_handling'
+    ]
+    
+    def run_single_test(test_method):
+        """Run a single test method"""
+        try:
+            # Create a test suite with just one test
+            suite = unittest.TestSuite()
+            test_case = WeatherStationTestCase(test_method)
+            suite.addTest(test_case)
+            
+            # Run the test
+            runner = unittest.TextTestRunner(verbosity=0, stream=open('/dev/null', 'w') if sys.platform != 'win32' else open('nul', 'w'))
+            result = runner.run(suite)
+            
+            return {
+                'test': test_method,
+                'success': result.wasSuccessful(),
+                'failures': len(result.failures),
+                'errors': len(result.errors),
+                'result': result
+            }
+        except Exception as e:
+            return {
+                'test': test_method,
+                'success': False,
+                'failures': 0,
+                'errors': 1,
+                'error': str(e)
+            }
+    
+    print("🚀 Running tests in parallel...")
+    start_time = time.time()
+    
+    # Run tests in parallel with ThreadPoolExecutor
+    with ThreadPoolExecutor(max_workers=3) as executor:
+        # Submit all tests
+        future_to_test = {executor.submit(run_single_test, test): test for test in test_methods}
+        
+        # Collect results
+        results = []
+        for future in concurrent.futures.as_completed(future_to_test):
+            test_name = future_to_test[future]
+            try:
+                result = future.result()
+                results.append(result)
+                status = "✅ PASSED" if result['success'] else "❌ FAILED"
+                print(f"   {status}: {result['test']}")
+            except Exception as e:
+                results.append({
+                    'test': test_name,
+                    'success': False,
+                    'failures': 0,
+                    'errors': 1,
+                    'error': str(e)
+                })
+                print(f"   💥 ERROR: {test_name} - {e}")
+    
+    end_time = time.time()
+    total_time = end_time - start_time
+    
+    # Aggregate results
+    total_tests = len(results)
+    total_failures = sum(r['failures'] for r in results)
+    total_errors = sum(r['errors'] for r in results)
+    successful_tests = sum(1 for r in results if r['success'])
+    
+    return {
+        'tests_run': total_tests,
+        'failures': total_failures,
+        'errors': total_errors,
+        'success_count': successful_tests,
+        'total_time': total_time,
+        'results': results
+    }
+
+def run_tests_sequential():
+    """Run all unit tests sequentially (original method)"""
     # Create test suite
     test_suite = unittest.TestLoader().loadTestsFromTestCase(WeatherStationTestCase)
     
@@ -455,50 +545,104 @@ def run_tests():
     runner = unittest.TextTestRunner(verbosity=2, stream=None)
     result = runner.run(test_suite)
     
-    # Print summary
-    print(f"\n{'='*70}")
-    print(f"📊 WEATHER STATION TEST SUMMARY")
-    print(f"{'='*70}")
-    print(f"Tests run: {result.testsRun}")
-    print(f"Failures: {len(result.failures)}")
-    print(f"Errors: {len(result.errors)}")
-    print(f"Success rate: {((result.testsRun - len(result.failures) - len(result.errors)) / result.testsRun * 100):.1f}%")
+    return result
+
+def run_tests():
+    """Run tests with option for parallel or sequential execution"""
+    import sys
     
-    if result.failures:
-        print(f"\n❌ FAILURES:")
-        for test, traceback in result.failures:
-            print(f"  - {test}: {traceback}")
+    # Check if parallel execution is requested
+    parallel_mode = '--parallel' in sys.argv or '-p' in sys.argv
     
-    if result.errors:
-        print(f"\n💥 ERRORS:")
-        for test, traceback in result.errors:
-            print(f"  - {test}: {traceback}")
-    
-    if not result.failures and not result.errors:
-        print(f"\n🎉 ALL TESTS PASSED! 🎉")
-        print("\n🔧 Core Features Validated:")
-        print("✅ Data Storage and Retrieval")
-        print("✅ LRU Cache Functionality (100-item capacity)")
-        print("✅ Cache-First Analytics Strategy")
-        print("✅ Connection Pool Management (2-5 connections)")
-        print("✅ Input Validation and Error Handling")
+    if parallel_mode:
+        print("⚡ Running tests in PARALLEL mode...")
+        parallel_result = run_tests_parallel()
         
-        print("\n🎯 Learning Objectives Achieved:")
-        print("• LRU Cache: Capacity management and eviction")
-        print("• Connection Pooling: Concurrent access handling")
-        print("• Time-Series Data: Storage and analytics")
-        print("• Cache-First Queries: Performance optimization")
-        print("• System Resilience: Validation and error handling")
+        # Print summary
+        print(f"\n{'='*70}")
+        print(f"📊 PARALLEL TEST SUMMARY")
+        print(f"{'='*70}")
+        print(f"Tests run: {parallel_result['tests_run']}")
+        print(f"Failures: {parallel_result['failures']}")
+        print(f"Errors: {parallel_result['errors']}")
+        print(f"Success rate: {(parallel_result['success_count'] / parallel_result['tests_run'] * 100):.1f}%")
+        print(f"Total time: {parallel_result['total_time']:.2f} seconds")
+        print(f"Average time per test: {parallel_result['total_time'] / parallel_result['tests_run']:.2f} seconds")
+        
+        if parallel_result['failures'] == 0 and parallel_result['errors'] == 0:
+            print(f"\n🎉 ALL TESTS PASSED! 🎉")
+            print("\n🔧 Core Features Validated:")
+            print("✅ Data Storage and Retrieval")
+            print("✅ LRU Cache Functionality (100-item capacity)")
+            print("✅ Cache-First Analytics Strategy")
+            print("✅ Connection Pool Management (2-5 connections)")
+            print("✅ Input Validation and Error Handling")
+            
+            print("\n🎯 Learning Objectives Achieved:")
+            print("• LRU Cache: Capacity management and eviction")
+            print("• Connection Pooling: Concurrent access handling")
+            print("• Time-Series Data: Storage and analytics")
+            print("• Cache-First Queries: Performance optimization")
+            print("• System Resilience: Validation and error handling")
+        
+        print(f"{'='*70}")
+        
+        return parallel_result['failures'] == 0 and parallel_result['errors'] == 0
     
-    print(f"{'='*70}")
+    else:
+        print("🔄 Running tests in SEQUENTIAL mode...")
+        result = run_tests_sequential()
     
-    return result.wasSuccessful()
+    # Print summary
+        # Print summary for sequential mode
+        print(f"\n{'='*70}")
+        print(f"📊 WEATHER STATION TEST SUMMARY")
+        print(f"{'='*70}")
+        print(f"Tests run: {result.testsRun}")
+        print(f"Failures: {len(result.failures)}")
+        print(f"Errors: {len(result.errors)}")
+        print(f"Success rate: {((result.testsRun - len(result.failures) - len(result.errors)) / result.testsRun * 100):.1f}%")
+        
+        if result.failures:
+            print(f"\n❌ FAILURES:")
+            for test, traceback in result.failures:
+                print(f"  - {test}: {traceback}")
+        
+        if result.errors:
+            print(f"\n💥 ERRORS:")
+            for test, traceback in result.errors:
+                print(f"  - {test}: {traceback}")
+        
+        if not result.failures and not result.errors:
+            print(f"\n🎉 ALL TESTS PASSED! 🎉")
+            print("\n🔧 Core Features Validated:")
+            print("✅ Data Storage and Retrieval")
+            print("✅ LRU Cache Functionality (100-item capacity)")
+            print("✅ Cache-First Analytics Strategy")
+            print("✅ Connection Pool Management (2-5 connections)")
+            print("✅ Input Validation and Error Handling")
+            
+            print("\n🎯 Learning Objectives Achieved:")
+            print("• LRU Cache: Capacity management and eviction")
+            print("• Connection Pooling: Concurrent access handling")
+            print("• Time-Series Data: Storage and analytics")
+            print("• Cache-First Queries: Performance optimization")
+            print("• System Resilience: Validation and error handling")
+        
+        print(f"{'='*70}")
+        
+        return result.wasSuccessful()
 
 if __name__ == "__main__":
     print("🧪 Weather Station Data Logger Unit Test Suite")
     print("=" * 70)
     print("Make sure the Weather Station API is running:")
     print("python main.py")
+    print("")
+    print("Usage:")
+    print("  python unit_test.py          # Sequential execution")
+    print("  python unit_test.py --parallel  # Parallel execution (faster)")
+    print("  python unit_test.py -p         # Parallel execution (short flag)")
     print("=" * 70)
     
     try:
