@@ -34,8 +34,7 @@ class WeatherStationTestCase(unittest.TestCase):
         except:
             pass
         
-        # Small delay to ensure cleanup
-        time.sleep(0.05)
+        # Cleanup completed
         
     def tearDown(self):
         """Clean up after each test method"""
@@ -97,8 +96,7 @@ class WeatherStationTestCase(unittest.TestCase):
             self.assertIn("timestamp", result)
             print(f"   ✅ Stored: {reading['sensor']} - {reading['temp']}°C")
         
-        # Wait for background processing
-        time.sleep(0.2)
+        # Background processing will complete
         
         # Retrieve recent readings
         response = self.make_request("GET", "/readings/recent", params={"limit": 5})
@@ -151,8 +149,7 @@ class WeatherStationTestCase(unittest.TestCase):
             response = self.submit_reading(temperature, sensor_id)
             self.assertEqual(response.status_code, 200)
         
-        # Minimal wait for background processing
-        time.sleep(0.2)
+        # Background processing will complete
         
         # Check final cache status
         final_status = self.get_system_status()
@@ -195,7 +192,7 @@ class WeatherStationTestCase(unittest.TestCase):
             response = self.submit_reading(reading["temp"], reading["sensor"])
             self.assertEqual(response.status_code, 200)
         
-        time.sleep(0.3)  # Wait for processing
+        # Processing will complete
         
         # Get hourly average
         response = self.make_request("GET", "/analytics/average-hour")
@@ -224,7 +221,7 @@ class WeatherStationTestCase(unittest.TestCase):
             response = self.submit_reading(temperature, sensor_id)
             self.assertEqual(response.status_code, 200)
         
-        time.sleep(0.3)  # Wait for processing
+        # Processing will complete
         
         # Get hourly average again
         response = self.make_request("GET", "/analytics/average-hour")
@@ -320,8 +317,7 @@ class WeatherStationTestCase(unittest.TestCase):
         success_rate = successful_requests / concurrent_requests
         self.assertGreater(success_rate, 0.8)  # At least 80% success rate
         
-        # Wait for background processing
-        time.sleep(0.5)
+        # Background processing will complete
         
         # Check final connection pool status
         final_status = self.get_system_status()
@@ -416,7 +412,7 @@ class WeatherStationTestCase(unittest.TestCase):
         
         # Test analytics with no data (after clearing)
         requests.delete(f"{self.base_url}/readings/clear")
-        time.sleep(0.2)
+        # Processing completed
         
         response = self.make_request("GET", "/analytics/average-hour")
         # Should either return 404 (no data) or handle gracefully
