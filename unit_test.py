@@ -16,7 +16,7 @@ import multiprocessing
 
 # --- Configuration ---
 # Define the Base URL for the API at the top of the script for easy access.
-BASE_URL = ""
+BASE_URL = "http://localhost:8080"
 
 class WeatherStationTestCase(unittest.TestCase):
     """Unit tests for the Weather Station Data Logger"""
