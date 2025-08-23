@@ -14,13 +14,17 @@ import random
 from concurrent.futures import ThreadPoolExecutor
 import multiprocessing
 
+# --- Configuration ---
+# Define the Base URL for the API at the top of the script for easy access.
+BASE_URL = ""
+
 class WeatherStationTestCase(unittest.TestCase):
     """Unit tests for the Weather Station Data Logger"""
     
     @classmethod
     def setUpClass(cls):
         """Set up test configuration - runs once before all tests"""
-        cls.base_url = "http://localhost:8000"
+        cls.base_url = BASE_URL
         cls.test_sensors = ["test_outdoor", "test_indoor", "test_greenhouse"]
         
         print(f"\n🌡️ Starting Weather Station Unit Tests")
@@ -52,7 +56,7 @@ class WeatherStationTestCase(unittest.TestCase):
             elif method.upper() == "DELETE":
                 return requests.delete(url)
         except requests.exceptions.ConnectionError:
-            self.fail("Could not connect to Weather Station API. Make sure it's running on http://localhost:8000")
+            self.fail(f"Could not connect to Weather Station API. Make sure it's running on {BASE_URL}")
     
     def submit_reading(self, temperature: float, sensor_id: str, timestamp: datetime = None) -> requests.Response:
         """Helper method to submit a temperature reading"""
@@ -329,7 +333,7 @@ class WeatherStationTestCase(unittest.TestCase):
         
         # Verify connection pool constraints
         self.assertGreaterEqual(final_connections, 2)  # Min connections
-        self.assertLessEqual(final_connections, 5)     # Max connections
+        self.assertLessEqual(final_connections, 5)    # Max connections
         
         print(f"   ✅ Connection pool within limits: {final_connections} (2-5 range)")
     
@@ -607,12 +611,12 @@ def run_tests():
         if result.failures:
             print(f"\n❌ FAILURES:")
             for test, traceback in result.failures:
-                print(f"  - {test}: {traceback}")
+                print(f"   - {test}: {traceback}")
         
         if result.errors:
             print(f"\n💥 ERRORS:")
             for test, traceback in result.errors:
-                print(f"  - {test}: {traceback}")
+                print(f"   - {test}: {traceback}")
         
         if not result.failures and not result.errors:
             print(f"\n🎉 ALL TESTS PASSED! 🎉")
@@ -641,9 +645,9 @@ if __name__ == "__main__":
     print("python main.py")
     print("")
     print("Usage:")
-    print("  python unit_test.py          # Sequential execution")
-    print("  python unit_test.py --parallel  # Parallel execution (faster)")
-    print("  python unit_test.py -p         # Parallel execution (short flag)")
+    print("   python unit_test.py           # Sequential execution")
+    print("   python unit_test.py --parallel  # Parallel execution (faster)")
+    print("   python unit_test.py -p          # Parallel execution (short flag)")
     print("=" * 70)
     
     try:
