@@ -620,25 +620,20 @@ class CoreDataPlatformTests(unittest.TestCase):
             self.assertIn("message", clear_data)
             self.assertIn("deleted_count", clear_data)
         
-        # Test simulation endpoint
-        simulation_data = {
-            "sensor_count": 2,
-            "readings_per_sensor": 5
-        }
-        response = self.client.post("/simulate/sensor-data", json=simulation_data)
+        # Test simulation endpoint (uses query parameters, not JSON body)
+        response = self.client.post("/simulate/sensor-data?sensor_count=2&readings_per_sensor=5")
         self.assertEqual(response.status_code, 200)
         sim_result = response.json()
         self.assertIn("message", sim_result)
         self.assertEqual(sim_result["sensors"], 2)
         self.assertEqual(sim_result["readings_per_sensor"], 5)
         
-        # Test simulation limits
-        excessive_simulation = {
-            "sensor_count": 20,  # Too many
-            "readings_per_sensor": 200  # Too many
-        }
-        response = self.client.post("/simulate/sensor-data", json=excessive_simulation)
+        # Test simulation limits (using query parameters)
+        response = self.client.post("/simulate/sensor-data?sensor_count=20&readings_per_sensor=200")
         self.assertEqual(response.status_code, 400)
+        error_data = response.json()
+        self.assertIn("detail", error_data)
+        self.assertIn("Too many sensors or readings requested", error_data["detail"])
         
         print("PASS: Root endpoint and basic API structure")
         print("PASS: Temperature reading submission")
