@@ -39,7 +39,16 @@ class CoreDataPlatformTests(unittest.TestCase):
             from fastapi.testclient import TestClient
             
             cls.app = app
+            # Create a test client and manually trigger startup to initialize database
             cls.client = TestClient(app)
+            
+            # Manually initialize the database for testing
+            try:
+                init_database()
+                print("Database initialized for testing")
+            except Exception as e:
+                print(f"Database initialization warning: {e}")
+            
             cls.lru_cache = lru_cache
             cls.db_pool = db_pool
             
@@ -467,13 +476,15 @@ class CoreDataPlatformTests(unittest.TestCase):
         """Test 5: API Integration and Input Validation"""
         print("Running Test 5: API Integration and Validation")
         
-        # Initialize the main application's database for testing
-        # This ensures the database table exists for the TestClient
+        # Database should already be initialized in setUpClass
+        # But we'll add a safety check here
         try:
-            from main import init_database
-            init_database()
+            # Verify database is accessible
+            response_test = self.client.get("/")
+            if response_test.status_code != 200:
+                print("Warning: API may not be fully initialized")
         except Exception as e:
-            print(f"Database initialization warning: {e}")
+            print(f"API initialization check warning: {e}")
         
         # Test root endpoint
         response = self.client.get("/")
